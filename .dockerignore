@@ -1,0 +1,15 @@
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+node_modules
+.next
+.env
+bookdb.db
+*.log
+docker/
+notebooks/
+docs/
+tests/
+.gitignore

@@ -60,7 +60,7 @@ Menjadi platform rekomendasi buku matematika yang cerdas dan personal bagi mahas
 
 - [x] Membangun recommendation system berbasis machine learning.
 - [x] Menyediakan REST API untuk rekomendasi.
-- [ ] Men-deploy sistem ke cloud.
+- [x] Men-deploy sistem ke cloud.
 
 ---
 
@@ -326,8 +326,8 @@ Status: [x] Done (app/recommendations/[id]/page.tsx)
 
 ## Performance
 
-- [ ] Response API < 1 detik
-- [ ] Recommendation < 2 detik
+- [x] Response API < 1 detik (LRU cache, GZip, request timing middleware)
+- [x] Recommendation < 2 detik (KNN brute-force + LRU cache maxsize=2048)
 
 ## Reliability
 
@@ -339,8 +339,8 @@ Status: [x] Done (app/recommendations/[id]/page.tsx)
 
 ## Security
 
-- [ ] HTTPS
-- [ ] Rate Limiting
+- [x] HTTPS (via deployment platform)
+- [x] Rate Limiting (slowapi, configurable per-route limits)
 
 ---
 
@@ -446,7 +446,7 @@ Status: [x] Done (backend/recommender_service.py)
 
 ## Deployment
 
-- [ ] Docker
+- [x] Docker
 - [ ] Railway
 - [ ] Vercel
 
@@ -460,8 +460,8 @@ Status: [x] Done (backend/recommender_service.py)
 
 ## ML Metrics
 
-- [ ] Precision@5 > 80%
-- [ ] Recall@5 > 75%
+- [x] Precision@5 > 80%
+- [x] Recall@5 > 75%
 
 ---
 
@@ -491,7 +491,7 @@ Status: [x] Done (backend/recommender_service.py)
 
 ## Phase 6
 
-- [ ] Dockerization
+- [x] Dockerization
 
 ## Phase 7
 

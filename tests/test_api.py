@@ -90,6 +90,8 @@ def test_security_headers():
     assert resp.headers.get("x-frame-options") == "DENY"
     assert resp.headers.get("x-xss-protection") == "1; mode=block"
     assert resp.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
+    assert "default-src 'self'" in resp.headers.get("content-security-policy", "")
+    assert "max-age=31536000" in resp.headers.get("strict-transport-security", "")
 
 
 def test_health_check_model_loaded():

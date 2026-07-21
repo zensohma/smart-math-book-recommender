@@ -7,6 +7,7 @@ export interface Book {
 }
 
 export interface RecBook {
+  bookId?: number;
   title: string;
   author: string;
   similarity?: number;

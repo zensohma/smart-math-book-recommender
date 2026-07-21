@@ -17,7 +17,7 @@ from sqlalchemy import text
 
 from database import get_db, engine
 from models import Book as BookModel
-from recommender_service import recommend, books
+from recommender_service import recommend, books as ml_books
 
 logging.basicConfig(
     level=logging.INFO,
@@ -70,6 +70,8 @@ async def security_headers_middleware(request: Request, call_next):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 
@@ -178,13 +180,15 @@ def get_books(request: Request, q: str = "", db: Session = Depends(get_db)):
         else:
             rows = db.query(BookModel).limit(50).all()
         return [book_model_to_dict(b) for b in rows]
-    else:
+    elif ml_books is not None:
         if q:
-            filtered = books[books["title"].str.contains(q, case=False, na=False, regex=False)]
+            filtered = ml_books[ml_books["title"].str.contains(q, case=False, na=False, regex=False)]
             rows = filtered.head(20)
         else:
-            rows = books.head(50)
+            rows = ml_books.head(50)
         return [book_to_dict(r) for _, r in rows.iterrows()]
+    else:
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
 
 
 @app.get("/books/popular")
@@ -194,9 +198,11 @@ def get_popular_books(request: Request, limit: int = Query(default=6, ge=1, le=5
     if use_db:
         rows = db.query(BookModel).limit(limit).all()
         return [book_model_to_dict(b) for b in rows]
-    else:
-        rows = books.head(limit)
+    elif ml_books is not None:
+        rows = ml_books.head(limit)
         return [book_to_dict(r) for _, r in rows.iterrows()]
+    else:
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
 
 
 @app.get("/genres")
@@ -214,11 +220,13 @@ def get_book(request: Request, book_id: int, db: Session = Depends(get_db)):
         if not book:
             raise HTTPException(status_code=404, detail=f"Book with id {book_id} not found")
         return book_model_to_dict(book)
-    else:
-        book = books[books["bookId"] == book_id]
+    elif ml_books is not None:
+        book = ml_books[ml_books["bookId"] == book_id]
         if book.empty:
             raise HTTPException(status_code=404, detail=f"Book with id {book_id} not found")
         return book_to_dict(book.iloc[0])
+    else:
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
 
 
 @lru_cache(maxsize=2048)
@@ -250,7 +258,10 @@ def get_featured_recommendation(request: Request):
     if _featured_cache.get("data") and now - _featured_cache.get("ts", 0) < _FEATURED_TTL:
         return _featured_cache["data"]
 
-    sample = books.sample(1).iloc[0]
+    if ml_books is None or len(ml_books) == 0:
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+
+    sample = ml_books.sample(1).iloc[0]
     recs = recommend(sample["title"], top_n=6)
     data = {
         "book": {
@@ -270,11 +281,11 @@ def get_featured_recommendation(request: Request):
 @app.get("/health")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 def health_check(request: Request):
-    model_loaded = len(books) > 0
+    model_loaded = ml_books is not None and len(ml_books) > 0
     db_ok = _db_available()
     return {
         "status": "ok" if model_loaded else "degraded",
         "model_loaded": model_loaded,
         "database_connected": db_ok,
-        "total_books": len(books),
+        "total_books": len(ml_books) if ml_books is not None else 0,
     }

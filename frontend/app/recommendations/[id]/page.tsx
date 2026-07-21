@@ -169,6 +169,7 @@ function BookDetailContent({ id }: { id: string }) {
             {state.recommendations.map((rec, i) => (
               <RecommendationCard
                 key={i}
+                bookId={rec.bookId}
                 title={rec.title}
                 author={rec.author}
                 similarity={rec.similarity}

@@ -56,16 +56,15 @@ def test_recommend_harry_potter():
     assert any("Harry Potter" in t for t in titles)
 
 
-def test_precision_at_5_above_80_percent():
+def _load_raw_genres():
     import numpy as np
-    import pandas as pd
     import os
 
     raw_path = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "books.csv")
     if not os.path.exists(raw_path):
-        return
+        return None
 
-    raw = pd.read_csv(raw_path)
+    raw = pd.read_csv(raw_path, encoding="latin-1", on_bad_lines="warn", engine="python")
     GLOBAL_SUFFIX = "Young Adult"
 
     def extract_book_genres(genres_str):
@@ -90,6 +89,16 @@ def test_precision_at_5_above_80_percent():
     np.random.seed(42)
     sample_idx = np.random.choice(len(eval_books), size=min(100, len(eval_books)), replace=False)
     sample = eval_books.iloc[sample_idx]
+    return sample, books_df
+
+
+def test_precision_at_5_above_80_percent():
+    import numpy as np
+
+    data = _load_raw_genres()
+    if data is None:
+        return
+    sample, books_df = data
 
     precision_scores = []
     for _, row in sample.iterrows():
@@ -109,38 +118,11 @@ def test_precision_at_5_above_80_percent():
 
 def test_recall_at_5_above_75_percent():
     import numpy as np
-    import pandas as pd
-    import os
 
-    raw_path = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "books.csv")
-    if not os.path.exists(raw_path):
+    data = _load_raw_genres()
+    if data is None:
         return
-
-    raw = pd.read_csv(raw_path)
-    GLOBAL_SUFFIX = "Young Adult"
-
-    def extract_book_genres(genres_str):
-        if pd.isna(genres_str):
-            return []
-        parts = genres_str.split(",")
-        last_global_idx = -1
-        for i, p in enumerate(parts):
-            if p.strip() == GLOBAL_SUFFIX:
-                last_global_idx = i
-        return list(set(g.strip() for g in parts[last_global_idx + 1:] if g.strip()))
-
-    raw["book_genres"] = raw["genres"].apply(extract_book_genres)
-    genre_map = raw.set_index("bookId")["book_genres"].to_dict()
-    books_df = BOOKS.copy()
-    books_df["genres_clean"] = books_df["bookId"].map(genre_map).apply(
-        lambda x: x if isinstance(x, list) else []
-    )
-    books_df["num_genres"] = books_df["genres_clean"].apply(len)
-
-    eval_books = books_df[books_df["num_genres"] >= 2]
-    np.random.seed(42)
-    sample_idx = np.random.choice(len(eval_books), size=min(100, len(eval_books)), replace=False)
-    sample = eval_books.iloc[sample_idx]
+    sample, books_df = data
 
     recall_scores = []
     for _, row in sample.iterrows():

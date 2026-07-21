@@ -87,6 +87,7 @@ export default function Home() {
               {recommendedBooks.map((book, i) => (
                 <RecommendationCard
                   key={i}
+                  bookId={book.bookId}
                   title={book.title}
                   author={book.author}
                   similarity={book.similarity}

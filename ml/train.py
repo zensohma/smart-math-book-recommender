@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
 
 
+
 GLOBAL_SUFFIX = "Young Adult"
 
 
@@ -28,11 +29,20 @@ def train(input_path, output_dir, max_features=10000, n_neighbors=6, raw_data_pa
 
     if raw_data_path and os.path.exists(raw_data_path):
         print(f"Loading raw data for genres from {raw_data_path}...")
-        raw = pd.read_csv(raw_data_path)
+        try:
+            raw = pd.read_csv(raw_data_path, encoding="latin-1", on_bad_lines="warn", engine="python")
+        except Exception:
+            raw = pd.read_csv(raw_data_path)
         raw["book_genres"] = raw["genres"].apply(extract_book_genres)
         genre_map = raw.set_index("bookId")["book_genres"].to_dict()
         books["genres_clean"] = books["bookId"].map(genre_map).apply(
             lambda x: " ".join(x) if isinstance(x, list) else ""
+        )
+        print(f"  Books with cleaned genres: {(books['genres_clean'] != '').sum()}")
+    elif "genres" in books.columns:
+        print("  Extracting genres from processed CSV...")
+        books["genres_clean"] = books["genres"].apply(
+            lambda x: " ".join(extract_book_genres(x)) if pd.notna(x) else ""
         )
         print(f"  Books with cleaned genres: {(books['genres_clean'] != '').sum()}")
     else:
